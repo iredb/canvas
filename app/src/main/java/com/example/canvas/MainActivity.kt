@@ -30,7 +30,6 @@ import java.io.FileOutputStream
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawingView: DrawingView
-    private lateinit var colorButtons: List<Button>
     private lateinit var brushSizeSeekBar: SeekBar
     private val pickImageCode = 1001
 
@@ -44,16 +43,10 @@ class MainActivity : AppCompatActivity() {
         val btnSave = findViewById<Button>(R.id.btnSave)
         val btnClear = findViewById<Button>(R.id.btnClear)
 
-        colorButtons = listOf(
-            findViewById(R.id.btnBlack),
-            findViewById(R.id.btnRed),
-            findViewById(R.id.btnGreen),
-            findViewById(R.id.btnBlue)
-        )
-        colorButtons[0].setOnClickListener { drawingView.setColor(android.graphics.Color.BLACK) }
-        colorButtons[1].setOnClickListener { drawingView.setColor(android.graphics.Color.RED) }
-        colorButtons[2].setOnClickListener { drawingView.setColor(android.graphics.Color.GREEN) }
-        colorButtons[3].setOnClickListener { drawingView.setColor(android.graphics.Color.BLUE) }
+        findViewById<Button>(R.id.btnBlack).setOnClickListener { drawingView.setColor(android.graphics.Color.BLACK) }
+        findViewById<Button>(R.id.btnRed).setOnClickListener { drawingView.setColor(android.graphics.Color.RED) }
+        findViewById<Button>(R.id.btnGreen).setOnClickListener { drawingView.setColor(android.graphics.Color.GREEN) }
+        findViewById<Button>(R.id.btnBlue).setOnClickListener { drawingView.setColor(android.graphics.Color.BLUE) }
 
         brushSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -79,9 +72,12 @@ class MainActivity : AppCompatActivity() {
             contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
 
             val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            val outputStream = contentResolver.openOutputStream(uri!!)!!
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            outputStream?.close()
+
+            uri?.let{
+                contentResolver.openOutputStream(it)?.use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                }
+            }
         }
 
         btnClear.setOnClickListener {
@@ -93,11 +89,12 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == pickImageCode && resultCode == Activity.RESULT_OK) {
-            val uri = data?.data ?: return
-            val inputStream = contentResolver.openInputStream(uri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-            drawingView.setBackgroundBitmap(bitmap)
+            data?.data?.let { uri ->  
+                contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    drawingView.setBackgroundBitmap(bitmap)
+                }
+            }
         }
     }
 }
